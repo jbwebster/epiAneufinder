@@ -21,9 +21,10 @@ epiAneufinder(
   threshold_blacklist_bins = 0.85,
   ncores = 4,
   minsize = 1,
-  k = 3,
-  minsizeCNV = 5,
-  plotKaryo = TRUE
+  k = 4,
+  minsizeCNV = 0,
+  plotKaryo = TRUE,
+  doubleSexChromosomes = TRUE
 )
 }
 \arguments{
@@ -65,6 +66,8 @@ a count matrix (required files: matrix.mtx(.gz), barcodes.tsv(.gz) and peaks.bed
 \item{minsizeCNV}{Integer. Number of consecutive bins to constitute a possible CNV}
 
 \item{plotKaryo}{Boolean variable. Whether the final karyogram is plotted at the end}
+
+\item{doubleSexChromosomes.}{Boolean variable. If True, values on chrX/chrY are multiplied by 2 prior to final result (does not affect intermediate values/files)}
 }
 \value{
 \code{NULL}

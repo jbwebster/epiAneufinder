@@ -1,7 +1,7 @@
 Package: epiAneufinder
 Type: Package
 Title: Calling copy numbers from scATAC-seq data
-Version: 1.0.3
+Version: 1.0.3a
 Authors@R: c(person('Akshaya', 'Ramakrishnan', NULL, 'akshaya4r@gmail.com', c('cre', 'aut')),
              person('Aikaterini', 'Symeonidi', NULL, 'aikaterini.symeonidi@helmholtz-muenchen.de', 'aut'),
              person('Patrick', 'Hanel', NULL, 'patrick.hanel@helmholtz-muenchen.de', 'aut'),
@@ -14,7 +14,7 @@ License: GPL-3
 VignetteBuilder: knitr, rmarkdown
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.1
+RoxygenNote: 7.3.2
 Depends:
     R (>= 3.5)
 biocViews:

@@ -20,6 +20,7 @@
 #' @param k Integer. Find 2^k segments per chromosome
 #' @param minsizeCNV Integer. Number of consecutive bins to constitute a possible CNV
 #' @param plotKaryo Boolean variable. Whether the final karyogram is plotted at the end
+#' @param doubleSexChromosomes. Boolean variable. If True, values on chrX/chrY are multiplied by 2 prior to final result (does not affect intermediate values/files)
 #' @import stats
 #' @import GenomicRanges
 #' @import plyranges
@@ -46,7 +47,8 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
                     test='AD', reuse.existing=FALSE, exclude=NULL,
                     uq=0.9, lq=0.1, title_karyo=NULL, minFrags = 20000, mapqFilter=10,
                     threshold_blacklist_bins=0.85, ncores=4, minsize=1, k=4, 
-                    minsizeCNV=0,plotKaryo=TRUE){
+                    minsizeCNV=0,plotKaryo=TRUE,
+                    doubleSexChromosomes=TRUE){
 
   outdir <- file.path(outdir, "epiAneufinder_results")
   dir.create(outdir,recursive=TRUE)
@@ -193,12 +195,24 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
       return(clusters)
     },  peaks[, .SD, .SDcols = patterns("cell-")], pruned_result.dt))
 
+    if(doubleSexChromosomes) {
+      peaks[which(peaks$seqnames %in% c('chrX','chrY')),
+            13:ncol(peaks)] <- peaks[which(peaks$seqnames %in% c('chrX','chrY')),
+                                     13:ncol(peaks)] * 2
+    }
+    
     # Assign copy number states to the different "clusters"/segments identified
     somies_ad <- Map(function(seq_data,cluster) {
       assign_gainloss(seq_data, cluster, uq=uq, lq=lq)
     }, peaks[, .SD, .SDcols = patterns("cell-")], clusters_pruned)
     print("Successfully assigned gain-loss")
     saveRDS(somies_ad, file.path(outdir, "cnv_calls.rds"))
+    
+    quant_ad <- Map(function(seq_data,cluster) {
+      assign_quantitative(seq_data, cluster, uq=uq, lq=lq)
+    }, peaks[, .SD, .SDcols = patterns("cell-")], clusters_pruned)
+    print("Successfully generated quantitative CNV calls")
+    saveRDS(quant_ad, file.path(outdir, "quant.cnv_calls.rds"))
   }
   
   somies_ad <- readRDS(file.path(outdir,"cnv_calls.rds"))
@@ -213,6 +227,11 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   write.table(write_somies.dt, file = file.path(outdir, "results_table.tsv"), quote = FALSE)
   message("A .tsv file with the results has been written to disk. It contains the copy number states for each cell per bin.
           0 denotes 'Loss', 1 denotes 'Normal', 2 denotes 'Gain'.")
+  
+  quant_ad <- readRDS(file.path(outdir, "quant.cnv_calls.rds"))
+  write_quant.dt <- as.data.table(quant_ad)
+  write_quant.dt <- as.data.table(cbind(seq=peaks$seqnames, start=peaks$start, end=peaks$end, write_quant.dt))
+  write.table(write_quant.dt, file = file.path(outdir, "quant.results_table.tsv"), quote = FALSE)
   
   if(plotKaryo){
     if(is.null(title_karyo)){
