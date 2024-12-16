@@ -109,6 +109,7 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   rowinfo <- as.data.table(rowRanges(counts))
   peaks <- cbind(rowinfo, peaks)
 
+  print("Correcting for GC bias...")
   if(!file.exists(file.path(outdir,"counts_gc_corrected.rds"))) {
     message("Correcting for GC bias...")
     nprogress <- -1
@@ -124,7 +125,7 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
     }, mc.cores = ncores), .SDcols = patterns("cell-")]
     saveRDS(corrected_counts, file.path(outdir,"counts_gc_corrected.rds"))
   }
-
+  print("Correcting for GC bias is finished...")
   corrected_counts <- readRDS(file.path(outdir,"counts_gc_corrected.rds"))
   peaks <- cbind(rowinfo, corrected_counts)
 
