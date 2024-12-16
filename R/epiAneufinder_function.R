@@ -109,11 +109,24 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   rowinfo <- as.data.table(rowRanges(counts))
   peaks <- cbind(rowinfo, peaks)
 
+  #if(!file.exists(file.path(outdir,"counts_gc_corrected.rds"))) {
+  #  message("Correcting for GC bias...")
+  #  corrected_counts <- peaks[, mclapply(.SD, function(x) {
+  #    # LOESS correction for GC
+  #    fit <- stats::loess(x ~ peaks$GC)
+  #    correction <- mean(x) / fit$fitted
+  #    as.integer(round(x * correction))
+  #  }, mc.cores = ncores), .SDcols = patterns("cell-")]
+  #  saveRDS(corrected_counts, file.path(outdir,"counts_gc_corrected.rds"))
+  #}
+  
+  #Modified to do GC correction once, instead of per-cell
   if(!file.exists(file.path(outdir,"counts_gc_corrected.rds"))) {
-    message("Correcting for GC bias...")
+    message("Updated method for correcting for GC bias...")
+    summarizedCounts <- matrixStats::rowMedians(as.matrix(peaks[, grepl("cell-", colnames(peaks)), with=FALSE]))
+    fit <- stats::loess(summarizedCounts ~ peaks$GC)
     corrected_counts <- peaks[, mclapply(.SD, function(x) {
       # LOESS correction for GC
-      fit <- stats::loess(x ~ peaks$GC)
       correction <- mean(x) / fit$fitted
       as.integer(round(x * correction))
     }, mc.cores = ncores), .SDcols = patterns("cell-")]
