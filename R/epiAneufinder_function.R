@@ -21,6 +21,7 @@
 #' @param minsizeCNV Integer. Number of consecutive bins to constitute a possible CNV
 #' @param plotKaryo Boolean variable. Whether the final karyogram is plotted at the end
 #' @param doubleSexChromosomes. Boolean variable. If True, values on chrX/chrY are multiplied by 2 prior to final result (does not affect intermediate values/files)
+#' @param barcodes. Vector of barcodes to keep
 #' @import stats
 #' @import GenomicRanges
 #' @import plyranges
@@ -48,7 +49,8 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
                     uq=0.9, lq=0.1, title_karyo=NULL, minFrags = 20000, mapqFilter=10,
                     threshold_blacklist_bins=0.85, ncores=4, minsize=1, k=4, 
                     minsizeCNV=0,plotKaryo=TRUE,
-                    doubleSexChromosomes=TRUE){
+                    doubleSexChromosomes=TRUE,
+                    barcodes=NULL){
 
   outdir <- file.path(outdir, "epiAneufinder_results")
   dir.create(outdir,recursive=TRUE)
@@ -108,16 +110,21 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   colnames(peaks) <- paste0('cell-', colnames(peaks))
   rowinfo <- as.data.table(rowRanges(counts))
   peaks <- cbind(rowinfo, peaks)
+  
+  if(!is.null(barcodes)) {
+    print("Subsetting to selected barcodes")
+    colsx <- c("seqnames", "start", "end", "width", "strand", "wSeq", "wStart", "wEnd", "name", "GC", "AT", "N", paste0("cell-", barcodes))
+    peaks <- peaks[,colsx, with=FALSE]
+    print(paste0("Subset count matrix with ", ncol(peaks), " cells"))
+  }
+
+  
 
   print("Correcting for GC bias...")
   if(!file.exists(file.path(outdir,"counts_gc_corrected.rds"))) {
     message("Correcting for GC bias...")
-    nprogress <- -1
     corrected_counts <- peaks[, mclapply(.SD, function(x) {
-      nprogress <- nprogress + 1
-      if(nprogress %% 10 == 0) {
-        message(paste0("Progress: ", nprogress, " - ", Sys.time()))
-      }
+      message(Sys.time())
       # LOESS correction for GC
       fit <- stats::loess(x ~ peaks$GC)
       correction <- mean(x) / fit$fitted
