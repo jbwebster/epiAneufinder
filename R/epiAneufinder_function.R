@@ -113,6 +113,7 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   
   if(!is.null(barcodes)) {
     print("Subsetting to selected barcodes")
+    barcodes <- barcodes[paste0("cell-",barcodes) %in% colnames(peaks)]
     colsx <- c("seqnames", "start", "end", "width", "strand", "wSeq", "wStart", "wEnd", "name", "GC", "AT", "N", paste0("cell-", barcodes))
     peaks <- peaks[,colsx, with=FALSE]
     print(paste0("Subset count matrix with ", ncol(peaks), " cells"))
@@ -124,7 +125,7 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   if(!file.exists(file.path(outdir,"counts_gc_corrected.rds"))) {
     message("Correcting for GC bias...")
     corrected_counts <- peaks[, mclapply(.SD, function(x) {
-      message(Sys.time())
+      message("GC bias progress check - ", Sys.time())
       # LOESS correction for GC
       fit <- stats::loess(x ~ peaks$GC)
       correction <- mean(x) / fit$fitted
