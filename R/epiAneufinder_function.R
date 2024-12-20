@@ -254,5 +254,7 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
     # Call plotting function to plot and save karyogram
     plot_karyo_gainloss(somies_ad = somies_ad, outdir = outdir, peaks = peaks, uq, lq, title_karyo)
     print("Successfully plotted karyogram")
+    plot_quant_karyo(somies_ad = quant_ad, outdir = outdir, peaks = peaks, uq, lq, title_karyo)
+    print("Successfully plotted quantitative karyogram")
   }
 }
