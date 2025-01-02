@@ -43,6 +43,7 @@ plot_karyo_gainloss <- function(somies_ad, outdir, peaks, uq=NULL, lq=NULL, titl
                              plot.subtitle=element_text(size=12))
     somies_melted$variable <- factor(somies_melted$variable,
                                      levels = names(somies_ad)[ord])
+    somies_melted$seqnames <- factor(somies_melted$seqnames, levels = unique(somies_melted$seqnames), ordered=T)
   }
   somycolours <- c(`0-somy` = "darkorchid3",
                    `1-somy` = "springgreen2",
