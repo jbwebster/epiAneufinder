@@ -94,7 +94,6 @@ plot_quant_karyo <- function(somies_ad, outdir, peaks, uq=NULL, lq=NULL, title_k
   somies.dt$seqnames <- peaks$seqnames
   somies.dt$rn <- as.numeric(rownames(somies.dt))
   somies_melted <- melt(somies.dt, id.vars=c('rn','seqnames'))
-  somies_melted$value <- as.factor(paste0(somies_melted$value,'-somy'))
   counts_t <- t(somies.dt[ ,.SD, .SDcols=patterns('cell-')])
   if(nrow(counts_t)>1){
     dist_matrix <- dist(counts_t)
