@@ -129,7 +129,8 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   
   # Filter cells based on a barcode list if provided
   if(! is.null(selected_cells)){
-    cells_select<-selected_cells
+    #Remove any barcodes that are missing for some reason
+    cells_select<-selected_cells[selected_cells %in% colnames(peaks)]
     peaks <- peaks[,cells_select,with=FALSE]
     #cells_select<-read.table(selected_cells)
     #peaks <- peaks[,cells_select$V1,with=FALSE]
