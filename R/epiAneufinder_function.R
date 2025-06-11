@@ -25,6 +25,7 @@
 #' @param gc_correction Boolean variable. Option to perform GC correction. Strongly advised to set to TRUE unless the input matrix is already GC corrected!!!
 #' @param plotKaryo Boolean variable. Whether the final karyogram is plotted at the end
 #' @param binValues If true, report results as CNV states (loss/neutral/gain). If false, report results as Z-scores. Default: TRUE.
+#' @param doubleSexChromosomes If true, double all count values on chrX and chrY. Default: FALSE
 #' @import stats
 #' @import GenomicRanges
 #' @import plyranges
@@ -55,7 +56,8 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
                     ncores=4, minsize=1, k=4, 
                     minsizeCNV=0,save_removed_regions=FALSE,gc_correction=TRUE,
                     plotKaryo=TRUE,
-                    binValues=TRUE){
+                    binValues=TRUE,
+                    doubleSexChromosomes=FALSE){
 
   outdir <- file.path(outdir, "epiAneufinder_results")
   dir.create(outdir,recursive=TRUE)
@@ -168,6 +170,13 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   peaks$seqnames<-droplevels(peaks$seqnames)
   
   message(paste("Filtering empty windows,",nrow(peaks),"windows remain."))
+  
+  if(doubleSexChromosomes) {
+    message("Doubling all values on chrX and chrY")
+    peaks[which(peaks$seqnames %in% c('chrX','chrY')),
+          13:ncol(peaks)] <- peaks[which(peaks$seqnames %in% c('chrX','chrY')),
+                                   13:ncol(peaks)] * 2
+  }
   
   # ----------------------------------------------------------------------------
   # GC correction
