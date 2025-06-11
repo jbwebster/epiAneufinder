@@ -171,12 +171,6 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   
   message(paste("Filtering empty windows,",nrow(peaks),"windows remain."))
   
-  if(doubleSexChromosomes) {
-    message("Doubling all values on chrX and chrY")
-    peaks[which(peaks$seqnames %in% c('chrX','chrY')),
-          13:ncol(peaks)] <- peaks[which(peaks$seqnames %in% c('chrX','chrY')),
-                                   13:ncol(peaks)] * 2
-  }
   
   # ----------------------------------------------------------------------------
   # GC correction
@@ -279,6 +273,13 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
       }
       return(clusters)
     },  peaks[, .SD, .SDcols = patterns("cell-")], pruned_result.dt))
+    
+    if(doubleSexChromosomes) {
+      message("Doubling all values on chrX and chrY")
+      peaks[which(peaks$seqnames %in% c('chrX','chrY')),
+            13:ncol(peaks)] <- peaks[which(peaks$seqnames %in% c('chrX','chrY')),
+                                     13:ncol(peaks)] * 2
+    }
 
     # Assign copy number states to the different "clusters"/segments identified
     somies_ad <- Map(function(seq_data,cluster) {
