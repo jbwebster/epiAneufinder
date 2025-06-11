@@ -205,6 +205,8 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   
   corrected_counts <- readRDS(file.path(outdir,"counts_gc_corrected.rds"))
   peaks <- cbind(rowinfo, corrected_counts)
+  #Drop factor levels of empty chromosomes
+  peaks$seqnames<-droplevels(peaks$seqnames)
   
   if(!file.exists(file.path(outdir,"results_gc_corrected.rds"))) {
     
