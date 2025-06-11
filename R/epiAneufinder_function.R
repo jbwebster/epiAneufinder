@@ -15,7 +15,7 @@
 #' @param minFrags Integer. Minimum number of reads for a cell to pass. Only required for fragments.tsv file. Default: 20000
 #' @param mapqFilter Filter bam files after a certain mapq value
 #' @param threshold_cells_nbins Keep only cells that have more than a certain percentage of non-zero bins
-#' @param selected_cells Additional option for filtering the input, either NULL or a file with barcodes of cells to keep (one barcode per line, no header)
+#' @param selected_cells Additional option for filtering the input, either NULL or a vector of barcodes to keep
 #' @param threshold_blacklist_bins Blacklist a bin if more than the given ratio of cells have zero reads in the bin. Default: 0.85
 #' @param ncores Number of cores for parallelization. Default: 4
 #' @param minsize Integer. Resolution at the level of ins. Default: 1. Setting it to higher numbers runs the algorithm faster at the cost of resolution
@@ -24,6 +24,7 @@
 #' @param save_removed_regions Boolean variable. Option to save regions that were filtered out in a file removed_regions.tsv.
 #' @param gc_correction Boolean variable. Option to perform GC correction. Strongly advised to set to TRUE unless the input matrix is already GC corrected!!!
 #' @param plotKaryo Boolean variable. Whether the final karyogram is plotted at the end
+#' @param binValues If true, report results as CNV states (loss/neutral/gain). If false, report results as Z-scores. Default: TRUE.
 #' @import stats
 #' @import GenomicRanges
 #' @import plyranges
@@ -53,7 +54,8 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
                     threshold_blacklist_bins=0.85,
                     ncores=4, minsize=1, k=4, 
                     minsizeCNV=0,save_removed_regions=FALSE,gc_correction=TRUE,
-                    plotKaryo=TRUE){
+                    plotKaryo=TRUE,
+                    binValues=TRUE){
 
   outdir <- file.path(outdir, "epiAneufinder_results")
   dir.create(outdir,recursive=TRUE)
@@ -120,19 +122,16 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   peaks <- as.data.table(assays(counts)$counts)
   
   # ----------------------------------------------------------------------------
-  # Filtering cells 1) based on barcode file (if provided) and
+  # Filtering cells 1) based on barcode  (if provided) and
   # 2) based on too many zero windows and
   # 3) filter windows without enough coverage
   # ----------------------------------------------------------------------------
   
-  # Filter cells based on a barcode file if provided
+  # Filter cells based on barcode if provided
   if(! is.null(selected_cells)){
-    cells_select<-read.table(selected_cells)
+    selected_cells <- selected_cells[selected_cells %in% colnames(peaks)]
     
-    #Filter for cells which are in the count matrix
-    cells_select<-cells_select[cells_select$V1 %in% colnames(peaks),,drop=FALSE]
-    
-    peaks <- peaks[,cells_select$V1,with=FALSE]
+    peaks <- peaks[,selected_cells,with=FALSE]
     
     message(paste("Filtering cell based on additionally provided barcode file,",
                 ncol(peaks),"cells remain."))
@@ -274,7 +273,7 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
 
     # Assign copy number states to the different "clusters"/segments identified
     somies_ad <- Map(function(seq_data,cluster) {
-      assign_gainloss(seq_data, cluster, uq=uq, lq=lq)
+      assign_gainloss(seq_data, cluster, uq=uq, lq=lq, is_binned=binValues)
     }, peaks[, .SD, .SDcols = patterns("cell-")], clusters_pruned)
     message("Successfully assigned gain-loss")
     saveRDS(somies_ad, file.path(outdir, "cnv_calls.rds"))
@@ -283,23 +282,28 @@ epiAneufinder <- function(input, outdir, blacklist, windowSize, genome="BSgenome
   somies_ad <- readRDS(file.path(outdir,"cnv_calls.rds"))
   # Write the results to disk
   write_somies.dt <- as.data.table(somies_ad)
-  write_somies.dt <- as.data.table(lapply(write_somies.dt, function(x) {
-    # x <- factor(x, levels = c(0,1,2), labels=c("Loss", "Normal", "Gain"))
-    x <- factor(x, levels = c(0,1,2))
-    return(x)
-    }))
+  if(binValues) {
+    write_somies.dt <- as.data.table(lapply(write_somies.dt, function(x) {
+      # x <- factor(x, levels = c(0,1,2), labels=c("Loss", "Normal", "Gain"))
+      x <- factor(x, levels = c(0,1,2))
+      return(x)
+      }))
+  }  
   write_somies.dt <- as.data.table(cbind(seq=peaks$seqnames, start=peaks$start, 
                                          end=peaks$end, write_somies.dt))
   write.table(write_somies.dt, file = file.path(outdir, "results_table.tsv"), quote = FALSE)
   message("A .tsv file with the results has been written to disk. 
-          It contains the copy number states for each cell per bin.
-          0 denotes 'Loss', 1 denotes 'Normal', 2 denotes 'Gain'.")
+          If binValues==TRUE, it contains the copy number states for each cell per bin.
+          0 denotes 'Loss', 1 denotes 'Normal', 2 denotes 'Gain'.
+          If binValues==FALSE, it contains the copy number Z-scores for each cell per bin.")
   
   # ----------------------------------------------------------------------------
   # Plotting the result karyogram
   # ----------------------------------------------------------------------------
   
-  if(plotKaryo){
+  #the built in karyogram plotting function expects CNV states,
+  #so only use it if values were reported as states
+  if(plotKaryo & binValues){
     if(is.null(title_karyo)){
       title_karyo <- basename(outdir)
     }
